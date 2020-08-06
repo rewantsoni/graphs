@@ -16,17 +16,21 @@ struct node {
     }
 
     void addDiEdge(node *n) {
-        childrens.push_back(n);
+        if (find(childrens.begin(), childrens.end(), n) == childrens.end())
+            childrens.push_back(n);
     }
 
     void addBiEdge(node *n) {
-        childrens.push_back(n);
-        n->childrens.push_back(this);
+        if (find(childrens.begin(), childrens.end(), n) == childrens.end())
+            childrens.push_back(n);
+        if (find(n->childrens.begin(), n->childrens.end(), this) == n->childrens.end())
+            n->childrens.push_back(this);
     }
 
     void clearEdges() {
         childrens.clear();
     }
+
 
 };
 
@@ -38,6 +42,7 @@ struct graph {
     }
 
     void print() {
+        cout << endl << "Printing the graph:" << endl;
         for (auto node:nodes) {
             cout << node->data << ": ";
             for (auto i:node->childrens) {
@@ -120,6 +125,108 @@ struct graph {
         return false;
     }
 
+    bool isGraphConnected() {
+        map<node *, bool> visited;
+        int c = 0;
+        for (auto node:nodes) {
+            if (!visited.count(node)) {
+                if (c > 0)
+                    return false;
+                c++;
+                traverseNode(node, visited);
+            }
+        }
+        return true;
+    }
+
+    int connectedComponents() {
+        map<node *, bool> visited;
+        int c = 0;
+        for (auto node:nodes) {
+            if (!visited.count(node)) {
+                c++;
+                traverseNode(node, visited);
+            }
+        }
+        return c;
+    }
+
+    void getConnectedComponents() {
+        map<node *, bool> visited;
+        cout << "Connected components are:" << endl;
+        for (auto node:nodes) {
+            if (!visited.count(node)) {
+                getConnectedComponentsUtil(node, visited);
+                cout << endl;
+            }
+        }
+    }
+
+    void degreeOfVertexUnDirected() {
+        cout << endl << "degreeOfVertexUnDirected: " << endl;
+        for (auto node:nodes) {
+            int count = 0;
+            for (auto n:node->childrens) {
+                if (n == node) {
+                    count++;
+                }
+                count++;
+            }
+            cout << node->data << " : " << count << endl;
+
+        }
+    }
+
+    void outDegreeDirected() {
+        cout << endl << "outDegreeDirected: " << endl;
+        for (auto node:nodes) {
+            cout << node->data << " : " << node->childrens.size() << endl;
+
+        }
+    }
+
+    void inDegreeDirected() {
+        cout << endl << "inDegreeDirected: " << endl;
+        int sz = nodes.size();
+        vector<int> in(sz, 0);
+        for (int i = 0; i < sz; i++) {
+            for (auto & children : nodes[i]->childrens) {
+                in[children->data]++;
+            }
+        }
+
+        for (int i = 0; i < sz; i++) {
+            cout << nodes[i]->data << " : " << in[i] << endl;
+        }
+    }
+
+    int shortestPath(node *a, node *b) {
+        int count = 0;
+        map<node *, int> visited;
+        queue<node *> q;
+        visited[a] = true;
+        q.push(a);
+        node *temp;
+        while (!q.empty()) {
+            int sz = q.size();
+            count++;
+            for (int i = 0; i < sz; i++) {
+                temp = q.front();
+                q.pop();
+                for (auto curr:temp->childrens) {
+                    if (!visited[curr]) {
+                        if (curr == b) {
+                            return count;
+                        }
+                        visited[curr] = true;
+                        q.push(curr);
+                    }
+                }
+            }
+        }
+        return -1;
+    }
+
 private:
     void dfsUtil(node *n, map<node *, bool> &visited) {
         visited[n] = true;
@@ -142,21 +249,40 @@ private:
         return false;
     }
 
+    void traverseNode(node *n, map<node *, bool> &visited) {
+        visited[n] = true;
+        for (auto cur:n->childrens) {
+            if (!visited.count(cur)) {
+                traverseNode(cur, visited);
+            }
+        }
+    }
+
+    void getConnectedComponentsUtil(node *n, map<node *, bool> &visited) {
+        visited[n] = true;
+        cout << n->data << " ";
+        for (auto cur:n->childrens) {
+            if (!visited.count(cur)) {
+                dfsUtil(cur, visited);
+            }
+        }
+    }
 //    shortest path -- number b/w two nodes
 //    paths - 2d array -- all the paths, path from one node to another
 //    areAdjacentVertices() bool
-//    degreeOfVertex() int
-//    connectedComponents() int
 //    hasBridge() bool --   G - n - G  -- remove N ---> disconnected
-//    isGraphConnected -->BI
-//    getConnectedComponents -> BI
 //    Topological Sort
 //    reverse -- reverse
 //    reverseNew -- into a new graph
 //    getConnectedComponents -> DI -- raju
 };
 
-int main() {
+
+////Has weak and strong connected? no connected and disconnected? connected components in directed graph?
+void directed() {
+
+    cout << "Directed Graph" << endl;
+
     node *zero = new node(0);
     node *one = new node(1);
     node *two = new node(2);
@@ -169,24 +295,72 @@ int main() {
     two->addDiEdge(zero);
     two->addBiEdge(three);
     four->addDiEdge(five);
-//    two->addDiEdge(two);
-
-    //BiDirected --->
-//    zero->addDiEdge(one);
-//    one->addDiEdge(two);
-//    one->addDiEdge(zero);
-//    two->addDiEdge(one);
-//    two->addBiEdge(three);
-//    four->addBiEdge(five);
+    two->addDiEdge(two);
 
     auto g = graph({zero, one, two, three, four, five});
     g.print();
     g.dfs();
     g.bfs();
-    cout << "hasCycle: " << ((g.hasCycle() == 1) ? "true" : "false") << endl;
-    cout << "hasLoop: " << ((g.hasLoop() == 1) ? "true" : "false") << endl;
+
     cout << "isDirected : " << ((g.isDirected() == 1) ? "true" : "false") << endl;
+
+    cout << "hasCycle: " << ((g.hasCycle() == 1) ? "true" : "false") << endl;
+
+    cout << "hasLoop: " << ((g.hasLoop() == 1) ? "true" : "false") << endl;
+
+    g.outDegreeDirected();
+    g.inDegreeDirected();
+    cout << "Shortest path: " << g.shortestPath(zero, two) << endl;
+    cout << "Shortest path: " << g.shortestPath(zero, five) << endl;
+
     zero->clearEdges();
     g.print();
+}
+
+void unDirected() {
+
+    cout << "UnDirected Graph" << endl;
+    node *zero = new node(0);
+    node *one = new node(1);
+    node *two = new node(2);
+    node *three = new node(3);
+    node *four = new node(4);
+    node *five = new node(5);
+
+    zero->addDiEdge(one);
+    one->addDiEdge(two);
+    one->addDiEdge(zero);
+    one->addBiEdge(one);
+    two->addDiEdge(one);
+    two->addBiEdge(three);
+    four->addBiEdge(five);
+//    three->addBiEdge(five);
+
+    auto g = graph({zero, one, two, three, four, five});
+    g.print();
+    g.dfs();
+    g.bfs();
+
+    cout << "isDirected : " << ((g.isDirected() == 1) ? "true" : "false") << endl;
+
+    cout << "hasLoop: " << ((g.hasLoop() == 1) ? "true" : "false") << endl;
+
+    cout << "isGraphConnected : " << ((g.isGraphConnected() == 1) ? "true" : "false") << endl;
+
+    cout << "Number of connected components: " << g.connectedComponents() << endl;
+    g.getConnectedComponents();
+
+    g.degreeOfVertexUnDirected();
+
+    zero->clearEdges();
+    g.print();
+
+}
+
+int main() {
+
+    directed();
+    cout << endl << endl;
+    unDirected();
     return 0;
 }
