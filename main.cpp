@@ -2,6 +2,7 @@
 #include <utility>
 #include <vector>
 #include <queue>
+#include <stack>
 #include <map>
 
 using namespace std;
@@ -94,11 +95,10 @@ struct graph {
 
     bool hasCycle() {
         map<node *, bool> visited;
+        map<node *, bool> recVisited;
         for (auto node:nodes) {
-            if (!visited.count(node)) {
-                if (hasCycleUtils(node, visited))
-                    return true;
-            }
+            if (hasCycleUtils(node, visited, recVisited))
+                return true;
         }
         return false;
     }
@@ -190,7 +190,7 @@ struct graph {
         int sz = nodes.size();
         vector<int> in(sz, 0);
         for (int i = 0; i < sz; i++) {
-            for (auto & children : nodes[i]->childrens) {
+            for (auto &children : nodes[i]->childrens) {
                 in[children->data]++;
             }
         }
@@ -227,6 +227,33 @@ struct graph {
         return -1;
     }
 
+    void topologicalSort() {
+        map<node *, bool> visited;
+        stack<node *> s;
+        for (auto node:nodes) {
+            if (!visited[node]) {
+                topologicalSortUtils(node, visited, s);
+            }
+        }
+        cout << "Topological Sort: ";
+        while (!s.empty()) {
+            cout << s.top()->data << " ";
+            s.pop();
+        }
+        cout << endl;
+    }
+
+    void topologicalSortUtils(node *n, map<node *, bool> &visited, stack<node *> &s) {
+        visited[n] = true;
+
+        for (auto cur:n->childrens) {
+            if (!visited[cur]) {
+                topologicalSortUtils(cur, visited, s);
+            }
+        }
+        s.push(n);
+    }
+
 private:
     void dfsUtil(node *n, map<node *, bool> &visited) {
         visited[n] = true;
@@ -238,14 +265,16 @@ private:
         cout << n->data << " ";
     }
 
-    bool hasCycleUtils(node *n, map<node *, bool> &visited) {
-        visited[n] = true;
-        for (auto cur:n->childrens) {
-            if (visited.count(cur)) {
-                return true;
+    bool hasCycleUtils(node *n, map<node *, bool> visited, map<node *, bool> &recVisited) {
+        if (!visited[n]) {
+            visited[n] = true;
+            recVisited[n] = true;
+            for (auto cur:n->childrens) {
+                if ((!visited[cur] && hasCycleUtils(cur, visited, recVisited)) || recVisited[cur])
+                    return true;
             }
-            return hasCycleUtils(cur, visited);
         }
+        recVisited[n] = false;
         return false;
     }
 
@@ -267,11 +296,9 @@ private:
             }
         }
     }
-//    shortest path -- number b/w two nodes
 //    paths - 2d array -- all the paths, path from one node to another
 //    areAdjacentVertices() bool
 //    hasBridge() bool --   G - n - G  -- remove N ---> disconnected
-//    Topological Sort
 //    reverse -- reverse
 //    reverseNew -- into a new graph
 //    getConnectedComponents -> DI -- raju
@@ -297,6 +324,15 @@ void directed() {
     four->addDiEdge(five);
     two->addDiEdge(two);
 
+    //DAG - Directed Acyclic Graph
+//    zero->addDiEdge(one);
+//    zero->addDiEdge(two);
+//    two->addDiEdge(three);
+//    one->addDiEdge(four);
+//    one->addDiEdge(three);
+//    four->addDiEdge(five);
+//    three->addDiEdge(five);
+
     auto g = graph({zero, one, two, three, four, five});
     g.print();
     g.dfs();
@@ -311,10 +347,13 @@ void directed() {
     g.outDegreeDirected();
     g.inDegreeDirected();
     cout << "Shortest path: " << g.shortestPath(zero, two) << endl;
-    cout << "Shortest path: " << g.shortestPath(zero, five) << endl;
+    cout << "Shortest path: " << g.shortestPath(two, zero) << endl;
 
-    zero->clearEdges();
-    g.print();
+    if (g.isDirected() && !g.hasCycle())
+        g.topologicalSort();
+
+//    zero->clearEdges();
+//    g.print();
 }
 
 void unDirected() {
@@ -352,6 +391,9 @@ void unDirected() {
 
     g.degreeOfVertexUnDirected();
 
+    cout << "Shortest path: " << g.shortestPath(zero, two) << endl;
+    cout << "Shortest path: " << g.shortestPath(two, zero) << endl;
+
     zero->clearEdges();
     g.print();
 
@@ -361,6 +403,6 @@ int main() {
 
     directed();
     cout << endl << endl;
-    unDirected();
+//    unDirected();
     return 0;
 }
